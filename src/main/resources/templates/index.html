@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The School Of Martial Art - Patna</title>
+    
+    <!-- ⚠️ विश्वसनीय Bootstrap 5 CDN Link (Alternate) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <!-- Bootstrap Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css">
+    
+    <style>
+       .carousel-item img {
+    height: 500px;         /* अपनी स्क्रीन के हिसाब से हाइट 500px या 550px सेट रखें */
+    object-fit: contain;   /* 'cover' की जगह 'contain' करने से पूरी इमेज बिना कटे दिखेगी */
+    background-color: #1a1a1a; /* इमेज के आसपास खाली जगह ब्लैक दिखेगी जो प्रोफेशनल लगती है */
+}
+
+/* 🎯 ये नया ब्लॉक स्टाइल टैग के अंदर जोड़ दें ताकि नैवबार के नीचे स्पेस बन जाए */
+#karateCarousel {
+    margin-top: 0px; 
+    padding-top: 10px; 
+}
+        .rating-box {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .bg-dark-custom {
+            background-color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-warning" href="#">🥋 THE SCHOOL OF MARTIAL ART</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link active" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#about">About Sensei</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                    <li class="nav-item mx-2">
+                        <a class="btn btn-outline-warning text-white px-3" href="/login-selection">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-warning fw-bold px-3" href="/register-student">Student Registration</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="karateCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="1500">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="3"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="4"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="5"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="6"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="7"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="8"></button>
+            <button type="button" data-bs-target="#karateCarousel" data-bs-slide-to="9"></button>
+        </div>
+       <div class="carousel-inner">
+    <div class="carousel-item active"><img th:src="@{/images/1.webp}" class="d-block w-100" alt="images Training 1"></div>
+    <div class="carousel-item"><img th:src="@{/images/2.webp}" class="d-block w-100" alt="images Training 2"></div>
+    <div class="carousel-item"><img th:src="@{/images/3.webp}" class="d-block w-100" alt="images Training 3"></div>
+    <div class="carousel-item"><img th:src="@{/images/4.webp}" class="d-block w-100" alt="images Training 4"></div>
+    <div class="carousel-item"><img th:src="@{/images/5.webp}" class="d-block w-100" alt="images Training 5"></div>
+    <div class="carousel-item"><img th:src="@{/images/6.webp}" class="d-block w-100" alt="images Training 6"></div>
+    <div class="carousel-item"><img th:src="@{/images/7.webp}" class="d-block w-100" alt="images Training 7"></div>
+    <div class="carousel-item"><img th:src="@{/images/8.webp}" class="d-block w-100" alt="images Training 8"></div>
+    <div class="carousel-item"><img th:src="@{/images/9.webp}" class="d-block w-100" alt="images Training 9"></div>
+    <div class="carousel-item"><img th:src="@{/images/10.webp}" class="d-block w-100" alt="images Training 10"></div>
+</div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#karateCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#karateCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center rating-box p-4">
+                <h2 class="fw-bold text-dark">The School Of Martial Art</h2>
+                <p class="text-muted mb-2"><i class="bi bi-geo-alt-fill text-danger"></i> Martial arts school in Patna, Bihar</p>
+                <div class="mb-3">
+                    <span class="fs-4 fw-bold text-dark me-2">4.9</span>
+                    <span class="text-warning fs-5">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                    </span>
+                    <span class="text-muted ms-2">(210 Google reviews)</span>
+                </div>
+                <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                    <a href="http://maps.google.com/?q=Shemerock+kids+school+Akashwani+road+Bailey+Rd+Patna" target="_blank" class="btn btn-outline-primary"><i class="bi bi-compass"></i> Directions</a>
+                    <a href="tel:08210007280" class="btn btn-success"><i class="bi bi-telephone"></i> Call: 082100 07280</a>
+                    <button class="btn btn-outline-secondary"><i class="bi bi-bookmark"></i> Save</button>
+                    <button class="btn btn-outline-secondary"><i class="bi bi-share"></i> Share</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="about" class="bg-light py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-4 text-center mb-4 mb-lg-0">
+                    <div class="p-4 bg-dark text-white rounded shadow">
+                        <i class="bi bi-person-workspace text-warning display-1"></i>
+                        <h4 class="mt-3 fw-bold">Sensei Mithilesh Kumar</h4>
+                        <p class="text-warning mb-0">Chief Instructor</p>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <h3 class="fw-bold text-dark mb-3">From The School Of Martial Art</h3>
+                    <div class="card border-start border-warning border-4 shadow-sm">
+                        <div class="card-body p-4">
+                            <p class="fs-5 lh-base text-secondary italic">
+                                "Sensei Mithilesh Kumar, one of the youngest <strong>3rd Dan Black Belt From Japan</strong>, National Judge & Referee : Karate India Organization (KIO) , Vice President : International Shotokan Karate Unite(ISKU) and International Coach. We Have Wonderful Team of Professional and Experienced Teachers For Martial Arts Training and Karate Classes."
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="py-5 bg-dark-custom text-white">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 mb-4 mb-md-0">
+                    <h4 class="text-warning fw-bold mb-4">🥋 Training Center Address</h4>
+                    <p class="fs-5 mb-2"><i class="bi bi-geo-alt-fill text-warning me-2"></i> Shemerock kids school,</p>
+                    <p class="text-light-50 ps-4">Akashwani road, Bailey Rd, near passport office, Khajpura, Patna, Bihar 800014</p>
+                    <p class="fs-5 mt-4 mb-2"><i class="bi bi-telephone-fill text-warning me-2"></i> Contact Number</p>
+                    <p class="text-light-50 ps-4"><a href="tel:08210007280" class="text-white text-decoration-none">082100 07280</a></p>
+                </div>
+                <div class="col-md-6">
+                    <h4 class="text-warning fw-bold mb-4">📍 Location Map</h4>
+                    <div class="ratio ratio-16x9 rounded overflow-hidden shadow">
+                        <iframe src="https://maps.google.com/maps?q=Shemerock%20kids%20school,%20Akashwani%20road,%20Bailey%20Rd,%20near%20passport%20office,%20Khajpura,%20Patna&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-white text-center py-3">
+        <p class="mb-0">&copy; 2026 The School Of Martial Art. Powered by NIC App Suite.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
