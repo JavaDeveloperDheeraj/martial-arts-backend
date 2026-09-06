@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Student Admission - The School Of Martial Art</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="bg-light">
+
+    <!-- App Header -->
+    <header class="app-header bg-dark text-white sticky-top py-2 px-3 shadow-sm">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <a href="/" class="btn btn-outline-warning btn-sm border-0"><i class="bi bi-arrow-left fs-5"></i></a>
+                <h6 class="mb-0 fw-bold text-warning">ADMISSION FORM</h6>
+            </div>
+            <span class="badge bg-warning text-dark">Step 1/1</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container py-3" style="max-width: 760px;">
+        
+        <!-- Response Feedback Toast / Alert -->
+        <div id="alertBox" class="alert d-none shadow-sm" role="alert"></div>
+
+        <form id="studentRegistrationForm" enctype="multipart/form-data" novalidate>
+            
+            <!-- SECTION 1: OTP & MOBILE -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body">
+                    <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-shield-check text-warning"></i> Verification Details</h6>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Mobile Number <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white">+91</span>
+                                <input type="tel" class="form-control" id="mobile" name="mobile" maxlength="10" 
+                                       placeholder="10-digit number" inputmode="numeric" required>
+                                <button class="btn btn-warning fw-bold px-3" type="button" id="btnSendOtp">Send OTP</button>
+                            </div>
+                            <div id="otpTimer" class="form-text small text-danger fw-semibold mt-1"></div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Enter OTP <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="userOtp" name="userOtp" maxlength="6" 
+                                       placeholder="Enter 6-digit OTP" inputmode="numeric" disabled required>
+                                <button class="btn btn-success fw-bold px-3" type="button" id="btnVerifyOtp" disabled>Verify OTP</button>
+                            </div>
+                            <div id="otpSuccessBadge" class="form-text text-success fw-bold d-none">
+                                <i class="bi bi-check-circle-fill"></i> Mobile Number Verified Successfully!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: PERSONAL DETAILS -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body">
+                    <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-person text-warning"></i> Basic Profile</h6>
+                    
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" placeholder="Student's complete name" required>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Father's Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="fatherName" placeholder="Father or Guardian name" required>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label class="form-label small fw-bold">Date of Birth <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="dob" required>
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label class="form-label small fw-bold">Gender <span class="text-danger">*</span></label>
+                            <select class="form-select" name="gender" required>
+                                <option value="">Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">Email</label>
+                            <input type="email" class="form-control" name="email" placeholder="Optional">
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">School / College</label>
+                            <input type="text" class="form-control" name="schoolName" placeholder="Institution name">
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label class="form-label small fw-bold">Qualification</label>
+                            <input type="text" class="form-control" name="qualification" placeholder="Class / Degree">
+                        </div>
+
+                        <div class="col-6 col-md-4">
+                            <label class="form-label small fw-bold">Occupation</label>
+                            <input type="text" class="form-control" name="occupation" placeholder="Student / Job">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: ADDRESSES -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body">
+                    <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-geo-alt text-warning"></i> Address Information</h6>
+                    
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Current Address <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="currentAddress" rows="2" placeholder="Street, locality, city" required></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Permanent Address <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="permanentAddress" rows="2" placeholder="Permanent home town address" required></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: PHYSICAL & EMERGENCY -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body">
+                    <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-activity text-warning"></i> Physical & Emergency Details</h6>
+                    
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">Weight (kg)</label>
+                            <input type="text" class="form-control" name="weight" placeholder="e.g. 50">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">Blood Group</label>
+                            <select class="form-select" name="bloodGroup">
+                                <option value="">Select</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">Ailments</label>
+                            <input type="text" class="form-control" name="alignments" placeholder="Any allergy/injury">
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small fw-bold">Emergency Contact Name</label>
+                            <input type="text" class="form-control" name="emergencyContactName" placeholder="Contact person">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label small fw-bold">Emergency Phone</label>
+                            <input type="tel" class="form-control" name="emergencyContactPhone" maxlength="10" placeholder="Contact number">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label small fw-bold">Relation</label>
+                            <input type="text" class="form-control" name="emergencyRelation" placeholder="Relation">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: FILE UPLOADS -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-body">
+                    <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-upload text-warning"></i> Upload Documents</h6>
+                    
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Student Photo <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold">Signature <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="signature" name="signature" accept="image/*" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="d-grid mb-5">
+                <button type="submit" id="btnSubmit" class="btn btn-warning btn-lg fw-bold py-3 shadow">
+                    Submit Admission Application
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <!-- 🎯 MODAL IS NOW OUTSIDE THE FORM -->
+    <div class="modal fade" id="otpDialogModal" tabindex="-1" aria-labelledby="otpModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-dark text-white">
+            <h6 class="modal-title fw-bold" id="otpModalLabel"><i class="bi bi-chat-left-dots text-warning"></i> OTP Notification</h6>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center py-4">
+            <div class="display-6 text-success mb-2"><i class="bi bi-shield-check"></i></div>
+            <p class="mb-1 fw-semibold text-secondary" id="modalMobileMsg">OTP has been sent to your mobile</p>
+            <div class="alert alert-warning border-warning d-inline-block px-4 py-2 mt-2">
+                <span class="small d-block text-muted">Your Demo OTP is:</span>
+                <span class="fs-4 fw-bold text-dark tracking-widest" id="modalOtpValue">------</span>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <button type="button" class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">Proceed to Enter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+   <!-- Scripts -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+		<script th:src="@{/js/student-registration.js}"></script>
+
+</body>
+</html>

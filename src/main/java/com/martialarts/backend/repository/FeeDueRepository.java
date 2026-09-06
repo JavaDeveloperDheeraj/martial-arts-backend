@@ -21,4 +21,6 @@ public interface FeeDueRepository extends JpaRepository<FeeDue, Long> {
     List<FeeDue> findPending(Long studentId);
 
     List<FeeDue> findByStudentIdOrderByYearAscMonthAsc(Long studentId);
+    
+    
 }

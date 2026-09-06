@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - The School Of Martial Art</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="bg-light">
+
+    <!-- Mobile Friendly Top Bar -->
+    <header class="app-header bg-dark text-white sticky-top py-2 px-3 shadow-sm">
+        <div class="d-flex align-items-center justify-content-between">
+            <a href="/" class="btn btn-outline-warning btn-sm border-0"><i class="bi bi-arrow-left fs-5"></i></a>
+            <h6 class="mb-0 fw-bold text-warning">PORTAL LOGIN</h6>
+            <span></span>
+        </div>
+    </header>
+
+    <main class="container py-4" style="max-width: 480px;">
+        
+        <div class="text-center mb-4">
+            <div class="display-6">🥋</div>
+            <h4 class="fw-bold text-dark mt-2">Welcome Back</h4>
+            <p class="text-muted small">Login using your verified registered mobile number</p>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="loginAlert" class="alert d-none shadow-sm" role="alert"></div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4">
+            <form id="loginForm" novalidate>
+
+                <!-- 1. ROLE SELECTION -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Select Your Role <span class="text-danger">*</span></label>
+                    <select class="form-select py-2" id="userRole" required>
+                        <option value="STUDENT" selected>Student</option>
+                        <option value="PARENT">Parent / Guardian</option>
+                        <option value="STAFF">Staff</option>
+                        <option value="ADMIN">Admin</option>
+                    </select>
+                </div>
+
+                <!-- 2. MOBILE NUMBER INPUT -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Mobile Number <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">+91</span>
+                        <input type="tel" class="form-control py-2" id="loginMobile" maxlength="10" placeholder="10-digit mobile" required>
+                        <button class="btn btn-warning fw-bold px-3" type="button" id="btnRequestOtp">Get OTP</button>
+                    </div>
+                    <div id="loginOtpTimer" class="form-text small text-muted"></div>
+                </div>
+
+                <!-- 3. OTP INPUT -->
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">Enter OTP <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control py-2 text-center fs-5 tracking-wide" id="loginOtp" maxlength="6" placeholder="------" required>
+                </div>
+
+                <!-- 4. SUBMIT BUTTON -->
+                <div class="d-grid">
+                    <button type="submit" id="btnLoginSubmit" class="btn btn-warning btn-lg fw-bold py-2 shadow-sm">
+                        Verify & Login
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="small text-muted mb-1">New to our academy?</p>
+            <a href="/register-student" class="text-dark fw-bold text-decoration-none">Apply for Admission Here</a>
+        </div>
+    </main>
+
+    <script th:src="@{/js/login.js}"></script>
+</body>
+</html>

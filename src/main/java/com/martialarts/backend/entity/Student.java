@@ -23,4 +23,12 @@ public class Student {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    private String rejectionReason;
+
+    @Column(columnDefinition = "TEXT")
+    private String actionHistory;
+    
+    private String discontinuedReason;
+    private LocalDateTime discontinuedDate;
 }

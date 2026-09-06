@@ -12,4 +12,7 @@ extends JpaRepository<StudentFeePlan, Long> {
 List<StudentFeePlan> findByStudentIdOrderByEffectiveFromDesc(Long studentId);
 StudentFeePlan findFirstByStudentIdOrderByEffectiveFromDesc(Long studentId);
 
+
+
+
 }

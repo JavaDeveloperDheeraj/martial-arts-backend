@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student & Parent Portal - The School Of Martial Art</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .portal-header { background-color: #1a1a1a; }
+        .student-avatar { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #ffc107; }
+        .status-pill { font-size: 0.85rem; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+        .qr-card-box { background: #fff; padding: 15px; border-radius: 12px; border: 2px dashed #ffc107; display: inline-block; }
+        
+        /* Receipt Print Styling */
+        @media print {
+            body * { visibility: hidden; }
+            #parentReceiptPrintArea, #parentReceiptPrintArea * { visibility: visible; }
+            #parentReceiptPrintArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <!-- Top Navigation Header -->
+    <header class="portal-header text-white sticky-top py-2 px-3 shadow-sm">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span class="fs-4">🥋</span>
+                <div>
+                    <h6 class="mb-0 fw-bold text-warning">THE SCHOOL OF MARTIAL ART</h6>
+                    <small class="text-white-50" id="portalUserMobile">Student / Parent Portal</small>
+                </div>
+            </div>
+            <button class="btn btn-outline-danger btn-sm" id="btnPortalLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
+        </div>
+    </header>
+
+    <main class="container my-4" style="max-width: 960px;">
+
+        <!-- 🎯 MULTI-CHILD SWITCHER (अगर 1 मोबाइल पर 2 बच्चे हैं) -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 d-none" id="childSwitcherCard">
+            <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-people-fill text-warning fs-5"></i>
+                    <span class="fw-bold small">Select Student Profile:</span>
+                </div>
+                <select class="form-select form-select-sm w-auto fw-bold text-primary" id="childSelector"></select>
+            </div>
+        </div>
+
+        <!-- 1. ADMISSION PROFILE & STATUS CARD -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <img id="pStudentPhoto" src="https://placehold.co/100x100?text=Student" class="student-avatar shadow-sm" alt="Student">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <h4 class="fw-bold mb-0" id="pStudentName">Loading Name...</h4>
+                            <span id="pStatusBadge" class="status-pill bg-warning text-dark">Checking...</span>
+                        </div>
+                        <p class="text-muted small mb-1">
+                            Student ID: #<strong id="pStudentId">--</strong> | 
+                            Father: <span id="pFatherName">--</span> | 
+                            Admission Date: <strong id="pAdmissionDate">--</strong>
+                        </p>
+                        <small class="text-secondary"><i class="bi bi-geo-alt"></i> <span id="pAddress">--</span></small>
+                    </div>
+                </div>
+
+                <!-- Rejection Alert -->
+                <div class="alert alert-danger mt-3 d-none" id="admissionRejectAlert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Admission Application Rejected:</strong>
+                    <span id="rejectionReasonText">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. FEE SUMMARY & ADVANCE LEDGER -->
+        <div id="feeSectionContainer" class="d-none">
+            
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-warning border-4">
+                        <span class="text-muted small fw-bold">MONTHLY FEE</span>
+                        <h4 class="fw-bold text-dark mt-1" id="feeMonthlyRate">₹0</h4>
+                        <small class="text-secondary">Standard Rate</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-danger border-4">
+                        <span class="text-muted small fw-bold">PENDING DUE</span>
+                        <h4 class="fw-bold text-danger mt-1" id="feeTotalDue">₹0</h4>
+                        <small class="text-danger fw-bold" id="dueStatusText">No Pending Dues</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-success border-4">
+                        <span class="text-muted small fw-bold">ADVANCE WALLET</span>
+                        <h4 class="fw-bold text-success mt-1" id="feeAdvanceAmount">₹0</h4>
+                        <small class="text-success fw-semibold" id="feeAdvanceCoverage">No Advance</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 bg-white p-3 border-start border-primary border-4">
+                        <span class="text-muted small fw-bold">NEXT PAYMENT</span>
+                        <h4 class="fw-bold text-primary mt-1" id="feeNextDueAmount">₹0</h4>
+                        <small class="text-muted">Due on: <strong id="feeNextDueDate">--</strong></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pay Now Button Banner -->
+            <div class="card border-0 shadow-sm rounded-3 bg-dark text-white p-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h6 class="fw-bold text-warning mb-1"><i class="bi bi-qr-code-scan"></i> Pay Fees via QR Code / UPI</h6>
+                        <small class="text-white-50">Generate instant dynamic QR code, scan via PhonePe/GPay and submit UTR with screenshot.</small>
+                    </div>
+                    <button class="btn btn-warning fw-bold px-4 shadow" onclick="openMakePaymentModal()">
+                        <i class="bi bi-wallet2"></i> Pay Fees Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Month-by-Month Statement Table -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar3 text-warning"></i> Month-by-Month Statement (महीना-वार विवरण)</h6>
+                    <span class="badge bg-light text-dark border">Official Ledger</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Billing Month</th>
+                                <th>Fee Type</th>
+                                <th>Billed</th>
+                                <th>Paid</th>
+                                <th>Balance Left</th>
+                                <th>Due Date</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyLedgerBody">
+                            <tr><td colspan="7" class="text-center py-3 text-muted">Loading statement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Receipt & Verification History -->
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-warning"></i> Payment History & Official Receipts</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount Paid</th>
+                                <th>Mode & Details</th>
+                                <th>Verification Status</th>
+                                <th class="text-center">Official Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentHistoryBody">
+                            <tr><td colspan="5" class="text-center py-3 text-muted">Fetching receipts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ================= MODAL: MAKE PAYMENT WITH DYNAMIC UPI QR ================= -->
+    <div class="modal fade" id="makePaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-qr-code text-warning"></i> Scan QR & Pay Academy Fees</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="payForm" enctype="multipart/form-data">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Amount to Pay (₹) *</label>
+                            <input type="number" class="form-control form-control-lg fw-bold text-success" id="payAmount" required min="1">
+                        </div>
+
+                        <!-- 🎯 DYNAMIC QR CODE DISPLAY -->
+                        <div class="text-center my-3">
+                            <div class="qr-card-box shadow-sm">
+                                <img id="dynamicQrImage" src="" alt="UPI QR" class="img-fluid" style="width: 170px; height: 170px;">
+                                <div class="small fw-bold text-dark mt-2" id="upiIdDisplay">UPI: 8210007280@okbizaxis</div>
+                            </div>
+                            <small class="d-block text-muted mt-2">Scan with Google Pay, PhonePe, or Paytm</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Payment Mode</label>
+                            <select class="form-select" id="payMode">
+                                <option value="UPI" selected>UPI (PhonePe / GPay / Paytm)</option>
+                                <option value="BANK_TRANSFER">Direct Bank Transfer (NEFT/IMPS)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">12-Digit UTR / Transaction ID *</label>
+                            <input type="text" class="form-control" id="payUtr" required placeholder="Enter 12-digit UTR/Ref from UPI app">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Upload Payment Screenshot * (JPG/PNG)</label>
+                            <input type="file" class="form-control" id="payScreenshot" accept="image/*" required>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" id="btnSubmitPayment" class="btn btn-warning fw-bold py-2 shadow-sm">
+                                Submit Receipt for Verification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: OFFICIAL PAYMENT RECEIPT SLIP ================= -->
+    <div class="modal fade" id="parentReceiptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white py-2">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-receipt text-warning"></i> Fee Payment Receipt</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="parentReceiptPrintArea">
+                    <div class="text-center border-bottom pb-3 mb-3">
+                        <h5 class="fw-bold mb-0 text-dark">🥋 THE SCHOOL OF MARTIAL ART</h5>
+                        <p class="small text-muted mb-0">Patna, Bihar | Phone: 082100 07280</p>
+                        <span class="badge bg-warning text-dark mt-1 fw-bold">OFFICIAL PAYMENT RECEIPT</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span>Receipt No: <strong id="pRecId">#--</strong></span>
+                        <span>Date: <strong id="pRecDate">--</strong></span>
+                    </div>
+
+                    <div class="bg-light p-2 rounded border small mb-3">
+                        <div>Student Name: <strong id="pRecStudentName">--</strong></div>
+                        <div>Student ID: <strong id="pRecStudentId">--</strong></div>
+                        <div>Father Name: <span id="pRecFather">--</span></div>
+                    </div>
+
+                    <table class="table table-sm table-bordered small mb-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th>Mode</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Academy Tuition / Monthly Fee</td>
+                                <td id="pRecMode">CASH</td>
+                                <td class="text-end fw-bold text-success" id="pRecAmount">₹0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="small text-muted mb-2">
+                        <span>Ref / UTR: <strong id="pRecUtr" class="text-dark">--</strong></span>
+                    </div>
+
+                    <div class="border-top pt-2 mt-3 d-flex justify-content-between align-items-center">
+                        <div class="text-center">
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">Verified By</small>
+                            <strong>Accounts Desk</strong>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">Status</small>
+                            <span class="badge bg-success" id="pRecStatus">CLEARED</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light justify-content-between py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark btn-sm fw-bold" onclick="printParentSlip()">
+                        <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/student-parent-dashboard.js}"></script>
+</body>
+</html>

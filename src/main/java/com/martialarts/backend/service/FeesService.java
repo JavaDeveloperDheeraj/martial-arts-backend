@@ -2,21 +2,28 @@ package com.martialarts.backend.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.martialarts.backend.dto.FeeLedgerDTO;
+import com.martialarts.backend.entity.FeeAllocation;
 import com.martialarts.backend.entity.FeeDue;
 import com.martialarts.backend.entity.Payment;
+import com.martialarts.backend.entity.Student;
 import com.martialarts.backend.entity.StudentFeePlan;
 import com.martialarts.backend.enums.FeeType;
+import com.martialarts.backend.repository.FeeAllocationRepository;
 import com.martialarts.backend.repository.FeeDueRepository;
 import com.martialarts.backend.repository.PaymentRepository;
 import com.martialarts.backend.repository.StudentFeePlanRepository;
-import com.martialarts.backend.util.DateUtil;
-import java.time.LocalDate;
+import com.martialarts.backend.repository.StudentRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -31,6 +38,16 @@ public class FeesService {
     
     @Autowired 
     private StudentFeePlanRepository planRepo;
+    
+    @Autowired
+    private StudentRepository studentRepo;
+    
+    @Autowired
+    private FeeDueRepository feeDueRepo;
+
+    @Autowired
+    private FeeAllocationRepository allocationRepo;
+   
 
     @Transactional
     public void setupFees(Long studentId,
@@ -245,4 +262,479 @@ public class FeesService {
                 "data", list
         );
     }
+    
+    
+    
+    
+    
+    
+    public FeeLedgerDTO getComprehensiveLedger(Long studentId) {
+
+        Student student = studentRepo.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // =========================================================
+        // 1. STUDENT FEE PLAN
+        // =========================================================
+        StudentFeePlan plan = planRepo.findFirstByStudentIdOrderByEffectiveFromDesc(studentId);
+
+        double monthlyRate = (plan != null && plan.getMonthlyFee() != null)
+                ? plan.getMonthlyFee()
+                : 0.0;
+
+
+        // =========================================================
+        // 2. APPROVED PAYMENTS ONLY
+        // =========================================================
+        List<Payment> approvedPayments = paymentRepo
+                .findByStudentIdOrderByPaymentDateDesc(studentId)
+                .stream()
+                .filter(p -> "APPROVED".equalsIgnoreCase(p.getStatus()))
+                .collect(Collectors.toList());
+
+        double totalPaidSum = approvedPayments.stream()
+                .mapToDouble(p -> p.getAmount() != null ? p.getAmount() : 0.0)
+                .sum();
+
+
+        // =========================================================
+        // 3. ALL FEE DUES
+        // =========================================================
+        List<FeeDue> dues = feeDueRepo
+                .findByStudentIdOrderByYearAscMonthAsc(studentId);
+
+
+        // =========================================================
+        // 4. TOTAL BILLED
+        // =========================================================
+        double totalBilledSum = dues.stream()
+                .mapToDouble(d ->
+                        (d.getTotalAmount() != null ? d.getTotalAmount() : 0.0)
+                                + (d.getLateFee() != null ? d.getLateFee() : 0.0)
+                )
+                .sum();
+
+
+        // =========================================================
+        // 5. BASIC LEDGER DTO
+        // =========================================================
+        FeeLedgerDTO ledger = new FeeLedgerDTO();
+
+        ledger.setStudentId(studentId);
+        ledger.setStudentName(student.getName());
+        ledger.setMonthlyFeeRate(monthlyRate);
+        ledger.setTotalBilled(totalBilledSum);
+        ledger.setTotalPaid(totalPaidSum);
+
+
+        // =========================================================
+        // 6. CURRENT DATE
+        // =========================================================
+        LocalDate today = LocalDate.now();
+
+        int currentMonthVal = today.getMonthValue();
+        int currentYearVal = today.getYear();
+
+
+        // =========================================================
+        // 7. STUDENT ADMISSION DATE
+        // =========================================================
+        if (student.getCreatedAt() != null) {
+            ledger.setAdmissionDate(
+                    student.getCreatedAt()
+                            .toLocalDate()
+                            .toString()
+            );
+        } else {
+            ledger.setAdmissionDate("N/A");
+        }
+
+
+        // =========================================================
+        // 8. ADVANCE vs OUTSTANDING CALCULATION
+        // =========================================================
+        if (totalPaidSum >= totalBilledSum) {
+
+            double extraAdvance = totalPaidSum - totalBilledSum;
+
+            ledger.setNetOutstanding(0.0);
+            ledger.setAdvanceBalance(extraAdvance);
+
+
+            // कितने पूरे महीने advance में cover हैं
+            int monthsCoveredAhead = monthlyRate > 0
+                    ? (int) (extraAdvance / monthlyRate)
+                    : 0;
+
+
+            LocalDate coverageDate = today.plusMonths(monthsCoveredAhead);
+
+
+            if (extraAdvance > 0 && monthsCoveredAhead > 0) {
+
+                ledger.setAdvanceCoveredUpto(
+                        "Covered upto "
+                                + coverageDate.getMonth()
+                                    .getDisplayName(
+                                            TextStyle.FULL,
+                                            Locale.ENGLISH
+                                    )
+                                + " "
+                                + coverageDate.getYear()
+                );
+
+                ledger.setNextDueDate(
+                        coverageDate
+                                .plusMonths(1)
+                                .withDayOfMonth(5)
+                );
+
+            } else if (extraAdvance > 0) {
+
+                ledger.setAdvanceCoveredUpto(
+                        "₹" + extraAdvance + " Advance in Wallet"
+                );
+
+                ledger.setNextDueDate(
+                        today
+                                .plusMonths(1)
+                                .withDayOfMonth(5)
+                );
+
+            } else {
+
+                ledger.setAdvanceCoveredUpto(
+                        "No Advance (Up to date)"
+                );
+
+                ledger.setNextDueDate(
+                        today
+                                .plusMonths(1)
+                                .withDayOfMonth(5)
+                );
+            }
+
+            ledger.setNextDueAmount(monthlyRate);
+
+
+        } else {
+
+            double pending = totalBilledSum - totalPaidSum;
+
+            ledger.setNetOutstanding(pending);
+            ledger.setAdvanceBalance(0.0);
+            ledger.setAdvanceCoveredUpto(
+                    "None (Payment Pending)"
+            );
+
+            ledger.setNextDueDate(
+                    today.withDayOfMonth(5)
+            );
+
+            ledger.setNextDueAmount(pending);
+        }
+
+
+        // =========================================================
+        // 9. CURRENT MONTH DUE
+        // =========================================================
+        FeeDue currentDue = dues.stream()
+                .filter(d ->
+                        d.getMonth() != null
+                                && d.getMonth() == currentMonthVal
+                                && d.getYear() != null
+                                && d.getYear() == currentYearVal
+                )
+                .findFirst()
+                .orElse(null);
+
+
+        if (currentDue != null) {
+
+            // Current month due date
+            ledger.setCurrentMonthDueDate(
+                    currentDue.getDueDate()
+            );
+
+
+            double curTotal = currentDue.getTotalAmount() != null
+                    ? currentDue.getTotalAmount()
+                    : 0.0;
+
+            double curPaid = currentDue.getPaidAmount() != null
+                    ? currentDue.getPaidAmount()
+                    : 0.0;
+
+
+            double curBal = curTotal - curPaid;
+
+
+            // Current month remaining amount
+            ledger.setCurrentMonthDueAmount(
+                    curBal > 0 ? curBal : 0.0
+            );
+
+
+            // Current month payment date
+            if (curPaid > 0 && currentDue.getPaymentDate() != null) {
+
+                ledger.setCurrentMonthPaidDate(
+                        currentDue.getPaymentDate()
+                                .toLocalDate()
+                                .toString()
+                );
+
+            } else {
+
+                ledger.setCurrentMonthPaidDate("Pending");
+            }
+
+
+            // Current month status
+            if (curBal <= 0) {
+
+                ledger.setCurrentMonthStatus("PAID");
+
+            } else if (curPaid > 0) {
+
+                ledger.setCurrentMonthStatus("PARTIAL");
+
+            } else {
+
+                ledger.setCurrentMonthStatus("UNPAID");
+            }
+
+
+        } else {
+
+            // =====================================================
+            // Current month FeeDue record doesn't exist
+            // =====================================================
+
+            ledger.setCurrentMonthDueDate(
+                    today.withDayOfMonth(5)
+            );
+
+
+            // अगर advance available है तो current month covered
+            if (ledger.getAdvanceBalance() > 0) {
+
+                ledger.setCurrentMonthDueAmount(0.0);
+
+                ledger.setCurrentMonthPaidDate(
+                        "Covered by Advance"
+                );
+
+                ledger.setCurrentMonthStatus("PAID");
+
+            } else {
+
+                ledger.setCurrentMonthDueAmount(
+                        monthlyRate
+                );
+
+                ledger.setCurrentMonthPaidDate(
+                        "Pending"
+                );
+
+                ledger.setCurrentMonthStatus(
+                        "UNPAID"
+                );
+            }
+        }
+
+
+        // =========================================================
+        // 10. MONTH-WISE STATEMENTS
+        // =========================================================
+        List<FeeLedgerDTO.MonthlyStatementItem> statements =
+                dues.stream()
+                        .map(d -> {
+
+                            FeeLedgerDTO.MonthlyStatementItem item =
+                                    new FeeLedgerDTO.MonthlyStatementItem();
+
+
+                            // -------------------------------------
+                            // Month Name
+                            // -------------------------------------
+                            String mName;
+
+                            if (d.getMonth() != null
+                                    && d.getMonth() >= 1
+                                    && d.getMonth() <= 12) {
+
+                                mName = Month.of(d.getMonth())
+                                        .getDisplayName(
+                                                TextStyle.FULL,
+                                                Locale.ENGLISH
+                                        )
+                                        + " "
+                                        + d.getYear();
+
+                            } else {
+
+                                mName = d.getFeeType() != null
+                                        ? d.getFeeType().toString()
+                                        : "FEE";
+                            }
+
+
+                            item.setMonthName(mName);
+
+                            item.setMonth(d.getMonth());
+                            item.setYear(d.getYear());
+
+
+                            // -------------------------------------
+                            // Fee Type
+                            // -------------------------------------
+                            item.setFeeType(
+                                    d.getFeeType() != null
+                                            ? d.getFeeType().toString()
+                                            : "MONTHLY"
+                            );
+
+
+                            // -------------------------------------
+                            // Amounts
+                            // -------------------------------------
+                            double totalAmount =
+                                    d.getTotalAmount() != null
+                                            ? d.getTotalAmount()
+                                            : 0.0;
+
+                            double paidAmount =
+                                    d.getPaidAmount() != null
+                                            ? d.getPaidAmount()
+                                            : 0.0;
+
+
+                            item.setTotalAmount(
+                                    d.getTotalAmount()
+                            );
+
+                            item.setPaidAmount(
+                                    paidAmount
+                            );
+
+
+                            // -------------------------------------
+                            // Balance
+                            // -------------------------------------
+                            double bal =
+                                    totalAmount - paidAmount;
+
+
+                            item.setDueBalance(
+                                    bal > 0 ? bal : 0.0
+                            );
+
+
+                            // -------------------------------------
+                            // Status
+                            // -------------------------------------
+                            if (bal <= 0) {
+
+                                item.setStatus("PAID");
+
+                            } else if (paidAmount > 0) {
+
+                                item.setStatus("PARTIAL");
+
+                            } else {
+
+                                item.setStatus("UNPAID");
+                            }
+
+
+                            // -------------------------------------
+                            // Due Date
+                            // -------------------------------------
+                            item.setDueDate(
+                                    d.getDueDate()
+                            );
+
+
+                            // -------------------------------------
+                            // Payment Date
+                            // -------------------------------------
+                            if (d.getPaymentDate() != null) {
+
+                                item.setPaymentDate(
+                                        d.getPaymentDate()
+                                                .toLocalDate()
+                                                .toString()
+                                );
+
+                            } else {
+
+                                item.setPaymentDate(null);
+                            }
+
+
+                            return item;
+
+                        })
+                        .collect(Collectors.toList());
+
+
+        // =========================================================
+        // 11. SET MONTHLY STATEMENTS
+        // =========================================================
+        ledger.setMonthlyStatements(statements);
+
+
+        // =========================================================
+        // 12. RETURN COMPLETE LEDGER
+        // =========================================================
+        return ledger;
+    }
+
+    
+    
+    @Transactional
+    public void processPaymentSettlement(Payment payment) {
+        double remainingAmount = payment.getAmount();
+        Long studentId = payment.getStudentId();
+
+        // छात्र के सभी अनपेड या पार्टियल ड्यूज को पुराने से नए क्रम (FIFO) में लाएं
+        List<FeeDue> unpaidDues = feeDueRepo.findByStudentIdOrderByYearAscMonthAsc(studentId);
+
+        for (FeeDue due : unpaidDues) {
+            if (remainingAmount <= 0) break;
+
+            double dueTotal = (due.getTotalAmount() != null ? due.getTotalAmount() : 0.0)
+                            + (due.getLateFee() != null ? due.getLateFee() : 0.0);
+            double alreadyPaid = due.getPaidAmount() != null ? due.getPaidAmount() : 0.0;
+            double pendingOnThisMonth = dueTotal - alreadyPaid;
+
+            if (pendingOnThisMonth > 0) {
+                double allocate = Math.min(remainingAmount, pendingOnThisMonth);
+                
+                // 1. Fee Due को अपडेट करें
+                due.setPaidAmount(alreadyPaid + allocate);
+                if ((alreadyPaid + allocate) >= dueTotal) {
+                    due.setStatus("PAID");
+                } else {
+                    due.setStatus("PARTIAL");
+                }
+                due.setPaymentDate(LocalDateTime.now());
+                feeDueRepo.save(due);
+
+                // 2. Fee Allocation रिकॉर्ड बनाएं
+                FeeAllocation alloc = new FeeAllocation();
+                alloc.setPaymentId(payment.getId());
+                alloc.setFeeDueId(due.getId());
+                alloc.setAmount(allocate);
+                allocationRepo.save(alloc);
+
+                remainingAmount -= allocate;
+            }
+        }
+
+        // अगर पैसा ड्यूज से ज्यादा है (remainingAmount > 0), 
+        // तो वह getComprehensiveLedger() द्वारा अपने आप Advance Wallet में दिखेगा।
+    }
+    
 }

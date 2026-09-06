@@ -27,4 +27,16 @@ public class Payment {
 
     @Column(name = "payment_date")
     private LocalDateTime paymentDate = LocalDateTime.now();
+    
+    private String screenshotPath;
+
+
+    @Column(length = 50)
+    private String status = "PENDING"; 
+    private String rejectionReason;
+    
+
+    private String collectedBy; // "ADMIN_CASH", "ADMIN_UPI", "STUDENT_ONLINE"
+    
+    private String remarks;
 }

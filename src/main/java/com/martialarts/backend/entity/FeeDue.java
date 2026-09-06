@@ -30,5 +30,9 @@ public class FeeDue {
     private LocalDate dueDate;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime paymentDate = LocalDateTime.now();
+
+	public String status;
+
+	
 }

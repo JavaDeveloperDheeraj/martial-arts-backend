@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - The School Of Martial Art</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    
+    <style>
+        .student-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #ffc107;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .student-thumb:hover {
+            transform: scale(1.15);
+        }
+        .nav-pills .nav-link.active {
+            background-color: #ffc107;
+            color: #000 !important;
+            font-weight: bold;
+        }
+        .nav-pills .nav-link { color: #555; }
+        .student-link {
+            cursor: pointer;
+            color: #0d6efd;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .student-link:hover { text-decoration: underline; }
+
+        /* 🖨️ A4 Print View Configuration */
+        @media print {
+            body * { visibility: hidden; }
+            #studentDetailModalContent, #studentDetailModalContent * { visibility: visible; }
+            #studentDetailModalContent {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 15px;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .modal-footer, .btn-close { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-dark sticky-top px-3 py-2 shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-warning" href="#">
+                🥋 MARTIAL ARTS ADMIN PANEL
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-light small" id="adminNameDisplay">Welcome, Admin</span>
+                <button class="btn btn-outline-danger btn-sm" id="btnLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid py-4 px-md-5">
+        <div id="dashboardAlert" class="alert d-none shadow-sm" role="alert"></div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Student Admissions & Dossier</h4>
+                <p class="text-muted small mb-0">Click student name to view/print profile. Click photo to open full resolution.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <!-- 🎯 Collect Cash / UPI Button -->
+                <button class="btn btn-warning fw-bold btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#adminCollectFeeModal">
+                    <i class="bi bi-cash-stack"></i> Collect Cash / UPI
+                </button>
+                <button class="btn btn-outline-dark btn-sm" id="btnRefreshData">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                </button>
+            </div>
+        </div>
+
+        <!-- TABS HEADER -->
+        <ul class="nav nav-pills mb-3 bg-white p-2 rounded shadow-sm" id="adminTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="tab-pending" data-bs-toggle="pill" data-bs-target="#content-pending" type="button">
+                    <i class="bi bi-clock-history"></i> Pending Admissions <span class="badge bg-danger ms-1" id="pendingCount">0</span>
+                </button>
+            </li>
+            <!-- 🎯 नया टैब: Verify Online Payments -->
+            <li class="nav-item">
+                <button class="nav-link text-danger fw-bold" id="tab-verify-payments" data-bs-toggle="pill" data-bs-target="#content-verify-payments" type="button">
+                    <i class="bi bi-qr-code-scan"></i> Verify Online Payments <span class="badge bg-danger ms-1" id="pendingPaymentsCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="tab-approved" data-bs-toggle="pill" data-bs-target="#content-approved" type="button">
+                    <i class="bi bi-check-circle"></i> Approved <span class="badge bg-success ms-1" id="approvedCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="tab-rejected" data-bs-toggle="pill" data-bs-target="#content-rejected" type="button">
+                    <i class="bi bi-x-circle"></i> Rejected Admissions <span class="badge bg-secondary ms-1" id="rejectedCount">0</span>
+                </button>
+            </li>
+            <!-- 🎯 Discontinued Students Tab -->
+            <li class="nav-item">
+                <button class="nav-link" id="tab-discontinued" data-bs-toggle="pill" data-bs-target="#content-discontinued" type="button">
+                    <i class="bi bi-person-slash"></i> Discontinued <span class="badge bg-secondary ms-1" id="discontinuedCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+			    <button class="nav-link text-primary fw-bold" id="tab-payment-audit" data-bs-toggle="pill" data-bs-target="#content-payment-audit" type="button">
+			        <i class="bi bi-clock-history"></i> Payment Audit Trail
+			    </button>
+			</li>
+            
+        </ul>
+
+        <div class="tab-content" id="adminTabsContent">
+            <!-- 1. PENDING ADMISSIONS TAB -->
+            <div class="tab-pane fade show active" id="content-pending" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Student Name (Click to View)</th>
+                                    <th>Father Name</th>
+                                    <th>Contact</th>
+                                    <th>Applied On</th>
+                                    <th class="text-center" style="min-width: 220px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🎯 2. VERIFY ONLINE PAYMENTS TAB -->
+            <div class="tab-pane fade" id="content-verify-payments" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-wallet2 text-warning me-1"></i> Parent/Student Submitted UPI Receipts Awaiting Verification</h6>
+                        <span class="badge bg-danger">Requires Admin Action</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark small">
+                                <tr>
+                                    <th>Student Details</th>
+                                    <th>Submitted On</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Mode / UTR</th>
+                                    <th>Receipt Screenshot</th>
+                                    <th class="text-center" style="min-width: 200px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingPaymentsTableBody">
+                                <tr><td colspan="6" class="text-center py-4 text-muted">No pending online payment receipts.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. APPROVED TAB WITH AGING & DUE FILTERS -->
+            <div class="tab-pane fade" id="content-approved" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h6 class="fw-bold mb-0 text-dark">Active Students & Fee Status</h6>
+                        <!-- 🎯 FILTER DROPDOWN -->
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted fw-bold">Filter By:</span>
+                            <select class="form-select form-select-sm w-auto fw-bold" id="feeFilterSelect">
+                                <option value="ALL">All Active Students</option>
+                                <option value="DUE_SOON">⚠️ Due Soon (1 to 10 Days Left)</option>
+                                <option value="OVERDUE">🚨 1 Month+ Overdue (Defaulters)</option>
+                                <option value="ADVANCE">🟢 Advance Paid</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Student Details</th>
+                                    <th>Admission Date</th>
+                                    <th>Due Date (This Month)</th>
+                                    <th>Paid Date</th>
+                                    <th>This Month Due</th>
+                                    <th>Status / Advance</th>
+                                    <th class="text-center" style="min-width: 200px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="approvedTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. REJECTED ADMISSIONS TAB -->
+            <div class="tab-pane fade" id="content-rejected" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Photo</th>
+                                    <th>Student Name (Click to View)</th>
+                                    <th>Mobile</th>
+                                    <th>Rejection Reason</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rejectedTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. DISCONTINUED TAB -->
+            <div class="tab-pane fade" id="content-discontinued" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Photo</th>
+                                    <th>Student Name (Click to View)</th>
+                                    <th>Mobile</th>
+                                    <th>Left On</th>
+                                    <th>Discontinuation Reason</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="discontinuedTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= 1. MODAL: STUDENT DETAILS & PRINT DOSSIER ================= -->
+    <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow" id="studentDetailModalContent">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-lines-fill text-warning me-2"></i> Student Admission Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="printArea">
+                    <!-- Top Summary Card with Photo and Signature -->
+                    <div class="row align-items-center mb-4 pb-3 border-bottom">
+                        <div class="col-md-3 text-center mb-3 mb-md-0">
+                            <a id="modalPhotoLink" href="#" target="_blank" title="Click to view full photo">
+                                <img id="modalPhoto" src="" alt="Student Photo" class="img-thumbnail rounded shadow-sm" style="width: 140px; height: 160px; object-fit: cover;">
+                            </a>
+                            <div class="small text-muted mt-1"><i class="bi bi-box-arrow-up-right"></i> Open Photo</div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="fw-bold mb-1" id="mName"></h4>
+                            <p class="text-muted mb-2">ID: #<span id="mId"></span> | Status: <span id="mStatusBadge"></span></p>
+                            <div class="small">
+                                <div><strong>Father's Name:</strong> <span id="mFather"></span></div>
+                                <div><strong>Mobile:</strong> <span id="mMobile"></span></div>
+                                <div><strong>Email:</strong> <span id="mEmail"></span></div>
+                                <div><strong>DOB:</strong> <span id="mDob"></span> | <strong>Gender:</strong> <span id="mGender"></span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <label class="small text-muted d-block mb-1">Applicant Signature</label>
+                            <a id="modalSignLink" href="#" target="_blank" title="Click to view signature">
+                                <img id="modalSign" src="" alt="Signature" class="img-thumbnail bg-white" style="width: 140px; height: 60px; object-fit: contain;">
+                            </a>
+                            <div class="small text-muted mt-1"><i class="bi bi-box-arrow-up-right"></i> Open Signature</div>
+                        </div>
+                    </div>
+
+                    <!-- Details Sections -->
+                    <div class="row g-3 small">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark border-bottom pb-1"><i class="bi bi-geo-alt text-warning"></i> Address</h6>
+                            <p class="mb-1"><strong>Current:</strong> <span id="mCurrentAddress"></span></p>
+                            <p class="mb-1"><strong>Permanent:</strong> <span id="mPermanentAddress"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark border-bottom pb-1"><i class="bi bi-heart-pulse text-warning"></i> Physical & Medical</h6>
+                            <p class="mb-1"><strong>Blood Group:</strong> <span id="mBloodGroup"></span> | <strong>Weight:</strong> <span id="mWeight"></span> kg</p>
+                            <p class="mb-1"><strong>Medical Ailments:</strong> <span id="mAlignments"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark border-bottom pb-1"><i class="bi bi-book text-warning"></i> Education & Job</h6>
+                            <p class="mb-1"><strong>School/College:</strong> <span id="mSchool"></span></p>
+                            <p class="mb-1"><strong>Qualification:</strong> <span id="mQualification"></span> | <strong>Occupation:</strong> <span id="mOccupation"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark border-bottom pb-1"><i class="bi bi-telephone-exclamation text-warning"></i> Emergency Contact</h6>
+                            <p class="mb-1"><strong>Name:</strong> <span id="mEmergencyName"></span> (<span id="mEmergencyRelation"></span>)</p>
+                            <p class="mb-1"><strong>Phone:</strong> <span id="mEmergencyPhone"></span></p>
+                        </div>
+                        
+                        <!-- History and Reason section -->
+                        <div class="col-12 mt-3" id="rejectionSection">
+                            <div class="alert alert-danger mb-0">
+                                <strong>Rejection Reason:</strong> <span id="mRejectionReason"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold text-dark border-bottom pb-1"><i class="bi bi-clock-history text-warning"></i> Audit & Action History</h6>
+                            <pre class="bg-light p-2 rounded border small mb-0" id="mActionHistory" style="white-space: pre-wrap; font-family: inherit;"></pre>
+                        </div>
+                        
+                        <!-- Financial Ledger in Modal -->
+                        <div class="col-12 mt-3">
+                            <div class="p-3 bg-light rounded border mb-3">
+                                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                    <i class="bi bi-wallet2 text-warning"></i> Student Fee & Advance Position
+                                </h6>
+                                <div class="row g-2 text-center small">
+                                    <div class="col-4">
+                                        <div class="p-2 bg-white rounded border">
+                                            <span class="text-muted d-block">Pending Due</span>
+                                            <strong class="text-danger fs-6" id="admModalDue">₹0</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 bg-white rounded border">
+                                            <span class="text-muted d-block">Advance Wallet</span>
+                                            <strong class="text-success fs-6" id="admModalAdvance">₹0</strong>
+                                            <small class="d-block text-muted" id="admModalCoverage">--</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 bg-white rounded border">
+                                            <span class="text-muted d-block">Next Due (Date)</span>
+                                            <strong class="text-primary fs-6" id="admModalNextAmount">₹0</strong>
+                                            <small class="d-block text-muted" id="admModalNextDate">--</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold text-dark border-bottom pb-1">
+                                <i class="bi bi-calendar3 text-warning"></i> Month-by-Month Statement
+                            </h6>
+                            <div class="table-responsive border rounded bg-white mb-3" style="max-height: 200px; overflow-y: auto;">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="table-light small sticky-top">
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Fee Type</th>
+                                            <th>Billed</th>
+                                            <th>Paid</th>
+                                            <th>Balance</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admModalMonthlyBody">
+                                        <tr><td colspan="6" class="text-center py-2 text-muted small">Loading statement...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark btn-sm fw-bold" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 2. MODAL: APPROVE / RE-APPROVE & SETUP FEES ================= -->
+    <div class="modal fade" id="approveFeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-cash-coin text-warning"></i> Approve Student & Set Fee Structure</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3 text-secondary">Set fee structure for <strong id="modalStudentName" class="text-dark"></strong>:</p>
+                    <form id="feeSetupForm">
+                        <input type="hidden" id="modalStudentId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Admission Fee (₹) *</label>
+                            <input type="number" class="form-control" id="admissionFee" value="1000" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Monthly Fee (₹) *</label>
+                            <input type="number" class="form-control" id="monthlyFee" value="800" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Effective From Date *</label>
+                            <input type="date" class="form-control" id="effectiveFrom" required>
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button type="submit" id="btnConfirmApprove" class="btn btn-warning fw-bold py-2">
+                                Confirm & Activate Admission
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 3. MODAL: REJECT ADMISSION REASON ================= -->
+    <div class="modal fade" id="rejectReasonModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-x-octagon me-1"></i> Reject Admission Application</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="rejectStudentId">
+                    <p class="text-secondary small">Provide a clear rejection reason for <strong id="rejectStudentName"></strong>:</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Reason for Rejection *</label>
+                        <textarea class="form-control" id="rejectReason" rows="3" placeholder="e.g. Unclear photo, missing documents, fee mismatch" required></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="button" id="btnConfirmReject" class="btn btn-danger fw-bold">Confirm Rejection</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 4. MODAL: ADMIN DIRECT COLLECT FEE (CASH/UPI) ================= -->
+    <div class="modal fade" id="adminCollectFeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-cash-stack text-warning"></i> Desk Fee Collection (Cash / Direct UPI)</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Live Student Financial Indicator -->
+                    <div class="alert alert-light border shadow-sm p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-dark fs-6" id="collectStudentNameDisplay">Select Student</strong>
+                            <span class="badge bg-secondary" id="collectStudentIdDisplay">#--</span>
+                        </div>
+                        <div class="row g-2 text-center small mt-2">
+                            <div class="col-4 border-end">
+                                <span class="text-muted d-block">Monthly Rate</span>
+                                <strong class="text-dark" id="modalMonthlyRate">₹0</strong>
+                            </div>
+                            <div class="col-4 border-end">
+                                <span class="text-muted d-block">Current Due</span>
+                                <strong class="text-danger" id="modalCurrentDue">₹0</strong>
+                            </div>
+                            <div class="col-4">
+                                <span class="text-muted d-block">In Advance</span>
+                                <strong class="text-success" id="modalCurrentAdv">₹0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="adminCollectFeeForm">
+                        <div class="mb-3 d-none" id="directStudentDisplayWrapper">
+                            <label class="form-label small fw-bold">Student</label>
+                            <input type="text" class="form-control bg-light fw-bold text-dark" id="directStudentNameInput" readonly>
+                        </div>
+
+                        <div class="mb-3" id="studentSelectWrapper">
+                            <label class="form-label small fw-bold">Select Student *</label>
+                            <select class="form-select fw-bold" id="collectStudentSelect" required>
+                                <option value="">-- Choose Student --</option>
+                            </select>
+                        </div>
+
+                        <input type="hidden" id="directCollectStudentId">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Amount Received (₹) *</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text bg-white">₹</span>
+                                <input type="number" class="form-control form-control-lg fw-bold text-success" id="collectAmount" required min="1" placeholder="0.00">
+                            </div>
+                            <div class="d-flex gap-1 flex-wrap" id="quickAmountChips">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="btnFillExactDue">Clear Exact Due</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="btnFillOneMonth">1 Month Fee</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="btnFillTwoMonths">2 Months (Advance)</button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Payment Mode *</label>
+                            <select class="form-select" id="collectMode" required>
+                                <option value="CASH" selected>💵 Cash Handover</option>
+                                <option value="UPI">📱 Direct UPI / QR at Desk</option>
+                                <option value="BANK_TRANSFER">🏦 Direct Bank Transfer / NEFT</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Transaction Ref / UTR / Receipt No</label>
+                            <input type="text" class="form-control" id="collectUtr" placeholder="Receipt or Ref number">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Admin Remarks</label>
+                            <input type="text" class="form-control" id="collectRemarks" placeholder="e.g. Jan paid, Feb 200 udhar">
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" id="btnSubmitAdminCollect" class="btn btn-warning fw-bold py-2 shadow-sm">
+                                <i class="bi bi-check2-circle"></i> Accept Fee & Update Ledger Instantly
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 5. MODAL: DISCONTINUE STUDENT ================= -->
+    <div class="modal fade" id="discontinueModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-warning text-dark">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-person-x-fill"></i> Discontinue Student</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="discStudentId">
+                    <p class="small text-secondary">State the reason why <strong id="discStudentName"></strong> is leaving:</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Reason *</label>
+                        <textarea class="form-control" id="discReason" rows="3" placeholder="e.g. School exams, shifted city, personal issue" required></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="button" id="btnConfirmDiscontinue" class="btn btn-dark fw-bold">Confirm Discontinuation</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 6. MODAL: PAYMENT RECEIPT PRINT ================= -->
+    <div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white py-2">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-receipt text-warning"></i> Fee Payment Receipt</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="receiptPrintArea">
+                    <div class="text-center border-bottom pb-3 mb-3">
+                        <h5 class="fw-bold mb-0 text-dark">🥋 THE SCHOOL OF MARTIAL ART</h5>
+                        <p class="small text-muted mb-0">Patna, Bihar | Contact: 082100 07280</p>
+                        <span class="badge bg-warning text-dark mt-1 fw-bold">OFFICIAL PAYMENT RECEIPT</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span>Receipt No: <strong id="recId">#--</strong></span>
+                        <span>Date: <strong id="recDate">--</strong></span>
+                    </div>
+
+                    <div class="bg-light p-2 rounded border small mb-3">
+                        <div>Student Name: <strong id="recStudentName">--</strong></div>
+                        <div>Student ID: <strong id="recStudentId">--</strong></div>
+                        <div>Mobile: <span id="recMobile">--</span></div>
+                    </div>
+
+                    <table class="table table-sm table-bordered small mb-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th>Mode</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td id="recDescription">Monthly Tuition / Academy Fee</td>
+                                <td id="recMode">CASH</td>
+                                <td class="text-end fw-bold text-success" id="recAmount">₹0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="small text-muted mb-2">
+                        <span>Ref / UTR: <strong id="recUtr" class="text-dark">--</strong></span><br>
+                        <span>Remarks: <span id="recRemarks">--</span></span>
+                    </div>
+
+                    <div class="border-top pt-2 mt-3 d-flex justify-content-between align-items-center">
+                        <div class="text-center">
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">Verified By</small>
+                            <strong>Accounts Desk</strong>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">Status</small>
+                            <span class="badge bg-success">PAYMENT RECEIVED</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light justify-content-between py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark btn-sm fw-bold" onclick="printReceiptSlip()">
+                        <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 🎯 7. MODAL: REJECT PAYMENT REASON ================= -->
+    <div class="modal fade" id="rejectPaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-x-circle-fill me-1"></i> Reject Online Fee Receipt</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="rejPaymentId">
+                    <p class="small text-secondary mb-2">
+                        Rejecting payment of <strong class="text-danger" id="rejPaymentAmount">₹0</strong> for <strong id="rejPaymentStudentName">Student</strong>:
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Reason for Rejection *</label>
+                        <textarea class="form-control" id="rejPaymentReason" rows="3" placeholder="e.g. UTR mismatch with bank, blurred screenshot, payment not received in account" required></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="button" id="btnConfirmPaymentReject" class="btn btn-danger fw-bold">
+                            Confirm & Send Rejection to Student Portal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- 🎯 6. PAYMENT AUDIT TRAIL TAB (Full History: Approved, Rejected, Cash) -->
+<div class="tab-pane fade" id="content-payment-audit" role="tabpanel">
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-journal-check text-success me-1"></i> Academy Payment Ledger & Audit Trail</h6>
+                <small class="text-muted">Complete trail of Cash, Desk UPI, Approved Online, and Rejected Payments.</small>
+            </div>
+            <!-- Status Filter -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted fw-bold">Filter:</span>
+                <select class="form-select form-select-sm w-auto fw-bold" id="auditStatusFilter">
+                    <option value="ALL">All Transactions</option>
+                    <option value="APPROVED">✅ Cleared / Approved</option>
+                    <option value="REJECTED">❌ Rejected</option>
+                    <option value="PENDING">⏳ Under Verification</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark small">
+                    <tr>
+                        <th>Receipt ID</th>
+                        <th>Date & Time</th>
+                        <th>Student Details</th>
+                        <th>Amount</th>
+                        <th>Mode & Ref</th>
+                        <th>Collected By</th>
+                        <th>Status & Audit Note</th>
+                        <th class="text-center">Receipt</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentAuditTableBody">
+                    <tr><td colspan="8" class="text-center py-4 text-muted">Loading audit records...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/admin-dashboard.js}"></script>
+</body>
+</html>

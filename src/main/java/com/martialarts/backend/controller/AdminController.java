@@ -1,10 +1,8 @@
 package com.martialarts.backend.controller;
 
 import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import com.martialarts.backend.entity.Student;
 import com.martialarts.backend.service.StudentService;
 
@@ -35,8 +33,29 @@ public class AdminController {
         return service.approveStudent(id);
     }
 
+//    @PostMapping("/students/reject/{id}")
+//    public String reject(@PathVariable Long id, @RequestParam(required = false) String reason) {
+//        System.out.println("Rejecting student ID: " + id + " for Reason: " + reason);
+//        return service.rejectStudent(id);
+//    }
+    
     @PostMapping("/students/reject/{id}")
-    public String reject(@PathVariable Long id) {
-        return service.rejectStudent(id);
+    public String reject(@PathVariable Long id, @RequestParam(required = false) String reason) {
+        return service.rejectStudent(id, reason != null ? reason : "No reason specified");
+    }
+    
+    @GetMapping("/students/discontinued")
+    public List<Student> getDiscontinued() {
+        return service.getDiscontinuedStudents();
+    }
+
+    @PostMapping("/students/discontinue/{id}")
+    public String discontinue(@PathVariable Long id, @RequestParam String reason) {
+        return service.discontinueStudent(id, reason);
+    }
+
+    @PostMapping("/students/rejoin/{id}")
+    public String rejoin(@PathVariable Long id) {
+        return service.rejoinStudent(id);
     }
 }
